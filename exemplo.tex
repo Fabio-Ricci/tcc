@@ -1,0 +1,129 @@
+% Exemplo de relatório técnico do IC
+
+% Criado por P.J.de Rezende antes do Alvorecer da História.
+% Modificado em 97-06-15 e 01-02-26 por J.Stolfi.
+% modificado em 2003-06-07 21:12:18 por stolfi
+% modificado em 2008-10-01 por cll
+% modificado em 2010-03-16 17:56:58 por stolfi
+% modificado em 2012-09-25 para ajustar o pacote UTF8. Contribuicao de Rogerio Cardoso
+% \def\lastedit{2015-03-18 00:52:20 by bit}
+
+\nonstopmode % PARA RODAR LATEX EM BATCH MODE
+\documentclass[11pt,twoside]{article}
+
+\usepackage{techrep-ic}
+
+%%% SE USAR INGLÊS, TROQUE AS ATIVAÇÕES DOS DOIS COMANDOS A SEGUIR:
+\usepackage[brazil]{babel}
+%% \usepackage[english]{babel}
+
+%%% SE USAR CODIFICAÇÃO LATIN1 OU UTF-8, ATIVE UM DOS DOIS COMANDOS A
+%%% SEGUIR:
+%%\usepackage[latin1]{inputenc}
+\usepackage[utf8]{inputenc}
+
+%%% Para obter o tamanho de texto recomendado:
+\usepackage[margin=1in]{geometry}
+
+\begin{document}
+
+%%% PÁGINA DE CAPA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% Número do relatório
+\TRNumber{14} % Dois dígitos
+
+% DATA DE PUBLICAÇÃO (PARA A CAPA)
+%
+\TRYear{17} % Dois dígitos
+\TRMonth{11} % Numérico, 01-12
+
+% LISTA DE AUTORES PARA CAPA (sem afiliações).
+\TRAuthor{A. Goodbeer \and Ch. Opps \and E. S. Puma}
+
+% TÍTULO PARA A CAPA (use \\ para forçar quebras de linha).
+\TRTitle{Comparação\\de cervejas brasileiras}
+
+\TRMakeCover
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% O que segue é apenas uma sugestão - sinta-se à vontade para
+% usar seu formato predileto, desde que as margens tenham pelo
+% menos 25mm nos quatro lados, e o tamanho do fonte seja pelo menos
+% 11pt. Certifique-se também de que o título e lista de autores
+% estão reproduzidos na íntegra na página 1, a primeira depois da
+% página de capa.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Nomes de autores ABREVIADOS e titulo ABREVIADO,
+% para cabeçalhos em cada página.
+%
+\markboth{Goodbeer, Opps e Puma}{Cervejas Brasileiras}
+\pagestyle{myheadings}
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TÍTULO e NOMES DOS AUTORES, completos, para a página 1.
+% Use "\\" para quebrar linhas, "\and" para separar autores.
+%
+\title{Comparação de Cervejas Brasileiras}
+
+\author{Arthur Goodbeer\thanks{Beernautics, Inc. \texttt{goodbeer@beernautics.com}} \and
+Charles Opps\thanks{Inst.~for Advanced Salaries, 
+St. Anford University, 95307 Las Cervezas, CA \texttt{chopps@keg.stanford.edu}} \and
+Eduardo dos Santos Puma\thanks{Inst.~de Computação, UNICAMP, 13083-852
+Campinas,  SP. \texttt{espuma@ic.unicamp.br}. Apoio CNQp e FASPEP}}
+
+\date{}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{abstract} 
+  Este trabalho é um relatório parcial de um projeto temático 
+  plurianual, visando o estudo comparativo de diversas espécies de
+  cervejas nativas do sub-continente brasileiro.  A realização deste
+  trabalho contou com o suporte financeiro do CNPq e FAPESP, e foi
+  imensamente facilitada pela infraestrutura de pesquisa cerevisíaca
+  instalada no Campus da UNICAMP.
+
+  Com base nessas pesquisas, determinamos que a altura da cerveja $h$
+  e a altura da espuma $e$ satisfazem aproximadamente a inequação
+  $(\sqrt{e^2 + h^2 + 2 h e})^3 \leq \exp(3 \log K_0^\ast)$, onde
+  $K_0^\ast$ é a altura do copo.  Esta fórmula é válida,
+  aparentemente, inclusive para espécies mais pigmentadas, como {\em
+  Malzbier}.  Em vista disso, e dos resultados análogos obtidos por
+  A. B. Stémio em experiências com {\em Guaraná} e $x$-{\em Cola},
+  conjeturamos que a fórmula pode ser aplicada (com pequenas
+  modificações) também a {\em Champagne} e outros líquidos de
+  composição similar.
+\end{abstract}
+
+\section{Introdução}
+
+  As propriedades lúdicas, mnemolíticas e catalógicas de 
+  soluções fraca- e medianamente concentradas de 1-metil-metanol
+  em hidróxido de hidrônio aquoso ($\rm H_3O^{+} HO^{-}\cdot {\mathit n}H_2O$)
+  tem sido objeto de intensos estudos experimentais por
+  cientistas no mundo todo~\cite{AHU,KNU}.
+  
+  Durante os últimos 20 anos, os autores coordenaram uma equipe
+  multidiplinar de pesquisadores, na UNICAMP e em outras instituições,
+  cujo objetivo derradeiro é elucidar e quantificar a relação entre...
+
+\begin{thebibliography}{99}
+
+\bibitem{AHU} A. V. Aho, J. E. Hopcroft and J.  D.  Ullman, {\it The
+Design and Analysis of Computer Algorithms,} Addison-Wesley (1901).
+
+\bibitem{KNU} D. E. Knuth and L. Lamport, {\it A structural analysis
+of the role of gnus and gnats in the post-modernistic, crypto-existential 
+Weltanschauung of neo-liberal Tibeto-Vietnamese leaf blower operators 
+as manifest in the sexual symbology of the Los Angeles Phone Directory}.
+Journal of Gnu Technology, {\bf 23} (6), 12--87
+(March 1996).
+
+\end{thebibliography}
+
+\end{document}
