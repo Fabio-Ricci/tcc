@@ -6,6 +6,7 @@ BASIC_DELTA_COUNT = 5
 # Constants for the buffer occupation adaptation scheme
 INSUFFICIENT_BUFFER_SAFETY_FACTOR = 0.5
 
+
 class Dash():
     def __init__(self, bitrates, algorithm):
         self.algorithm = algorithm
@@ -17,16 +18,18 @@ class Dash():
         self.previous_segment_times = []
         self.previous_segment_times_seg = {}
         self.bitrates_seg = {}
-    
+
     def update_download_time(self, frame_download_time, segment):
         self.segment_download_time = frame_download_time
         self.previous_segment_times.append(frame_download_time)
 
         try:
-            self.previous_segment_times_seg[segment] = self.previous_segment_times_seg[segment] + frame_download_time
+            self.previous_segment_times_seg[segment] = self.previous_segment_times_seg[segment] + \
+                frame_download_time
         except:
             self.previous_segment_times_seg[segment] = 0
-            self.previous_segment_times_seg[segment] = self.previous_segment_times_seg[segment] + frame_download_time
+            self.previous_segment_times_seg[segment] = self.previous_segment_times_seg[segment] + \
+                frame_download_time
 
     def append_download_size(self, download_size):
         self.recent_download_sizes.append(download_size)
@@ -36,6 +39,12 @@ class Dash():
             return self.basic_dash2(segment_number)
         elif self.algorithm == 'basic':
             return self.basic_dash(segment_number)
+        elif self.algorithm == 'buffer_occupation':
+            return self.buffer_occupation(segment_number)
+        elif self.algorithm == 'channel_flow_rate':
+            return self.channel_flow_rate(segment_number)
+        elif self.algorithm == 'bola':
+            return self.bola(segment_number)
         else:
             return self.current_bitrate
 
@@ -51,7 +60,8 @@ class Dash():
 
     def basic_dash(self, segment_number):
         if self.average_dwn_time > 0 and segment_number > 0:
-            updated_dwn_time = (self.average_dwn_time * (segment_number + 1) + self.segment_download_time) / (segment_number + 1)
+            updated_dwn_time = (self.average_dwn_time * (segment_number + 1) +
+                                self.segment_download_time) / (segment_number + 1)
         else:
             updated_dwn_time = self.segment_download_time
 
@@ -89,18 +99,18 @@ class Dash():
                 while next_rate < bitrates[-1] or sigma_download < (bitrates[curr+1] / bitrates[curr]):
                     temp_index += 1
                     next_rate = bitrates[temp_index]
-        
+
         self.bitrates_seg[segment_number] = next_rate
         self.average_dwn_time = updated_dwn_time
         self.current_bitrate = next_rate
         return next_rate
 
     def basic_dash2(self, segment_number):
-        # Truncating the list of download times and segment 
+        # Truncating the list of download times and segment
         pst = self.previous_segment_times.copy()
         while len(pst) > BASIC_DELTA_COUNT:
             pst.pop(0)
-        
+
         rds = self.recent_download_sizes.copy()
         while len(rds) > BASIC_DELTA_COUNT:
             rds.pop(0)
@@ -111,10 +121,12 @@ class Dash():
             self.current_bitrate = self.bitrates[0]
             return self.bitrates[0]
 
-        updated_dwn_time = sum(self.previous_segment_times) / len(self.previous_segment_times)
+        updated_dwn_time = sum(self.previous_segment_times) / \
+            len(self.previous_segment_times)
 
         # Calculate the running download_rate in Kbps for the most recent segments
-        download_rate = sum(self.recent_download_sizes) * 8 / (updated_dwn_time * len(self.previous_segment_times))
+        download_rate = sum(self.recent_download_sizes) * 8 / \
+            (updated_dwn_time * len(self.previous_segment_times))
         bitrates = [float(i) for i in self.bitrates]
         bitrates.sort()
         next_rate = bitrates[0]
@@ -146,12 +158,11 @@ class Dash():
         self.current_bitrate = next_rate
         return next_rate
 
-    def buffer_occupation(self):
+    def buffer_occupation(self, segment_number):
         return self.current_bitrate
 
-    def channel_flow_rate(self):
+    def channel_flow_rate(self, segment_number):
         return self.current_bitrate
 
-    def bola(self):
+    def bola(self, segment_number):
         return self.current_bitrate
-

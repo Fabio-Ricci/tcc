@@ -86,7 +86,8 @@ async def handle_stream(hp_reader, hp_writer, lp_reader, lp_writer, dash):
 
         current_bitrate = dash.get_max_bitrate()
         for tile in range(1, MAX_TILE):
-            message = VideoPacket(buffer_segment, tile, HIGH_PRIORITY, current_bitrate)
+            message = VideoPacket(buffer_segment, tile,
+                                  HIGH_PRIORITY, current_bitrate)
 
             await send_data(hp_writer, stream_id=client_id, end_stream=False, packet=message)
 
@@ -142,7 +143,8 @@ async def handle_stream(hp_reader, hp_writer, lp_reader, lp_writer, dash):
                             priority = LOW_PRIORITY
                             writer_to_send = lp_writer
 
-                        message = VideoPacket(video_segment, tile, priority, current_bitrate)
+                        message = VideoPacket(
+                            video_segment, tile, priority, current_bitrate)
                         await send_data(writer_to_send, stream_id=client_id, end_stream=False, packet=message)
                 frame_request += VIDEO_FPS
 
@@ -204,27 +206,37 @@ async def handle_stream(hp_reader, hp_writer, lp_reader, lp_writer, dash):
                     sum_bitrate = 0
                     download_time_seg = {}
                     while i <= N_SEGMENTS:
-                        missing_ratio[i] = str(round((missed_frames_seg[i]/total_frames_seg[i])*100, 2))+"%"
-                        missing_ratio_fov[i] = str(round((missed_frames_seg_fov[i]/total_frames_seg_fov[i])*100, 2))+'%'
+                        missing_ratio[i] = str(
+                            round((missed_frames_seg[i]/total_frames_seg[i])*100, 2))+"%"
+                        missing_ratio_fov[i] = str(
+                            round((missed_frames_seg_fov[i]/total_frames_seg_fov[i])*100, 2))+'%'
 
                         sum_bitrate += dash.bitrates_seg[i]
                         try:
-                            download_time_seg[i] = str(round(dash.previous_segment_times_seg[i], 2))+'s'
+                            download_time_seg[i] = str(
+                                round(dash.previous_segment_times_seg[i], 2))+'s'
                         except:
                             download_time_seg[i] = 'NOT_FINISHED'
 
                         i += 1
 
-                    missing_ratio_total = round((missed_frames/total_frames)*100, 2)
-                    missing_ratio_total_fov = round((missed_frames_fov/total_frames_fov)*100, 2)
+                    missing_ratio_total = round(
+                        (missed_frames/total_frames)*100, 2)
+                    missing_ratio_total_fov = round(
+                        (missed_frames_fov/total_frames_fov)*100, 2)
 
                     print("Missing ratio total: "+str(missing_ratio_total)+"%")
-                    print("Missing ratio total (campo visão): "+str(missing_ratio_total_fov)+"%")
+                    print("Missing ratio total (campo visão): " +
+                          str(missing_ratio_total_fov)+"%")
                     print("Missing ratio por segmento: "+str(missing_ratio))
-                    print("Missing ratio por segmento (campo visão): "+str(missing_ratio_fov))
-                    print("Tempo total de download: "+str(round(sum(dash.previous_segment_times), 2))+"s")
-                    print("Tempo total de download por segmento: "+str(download_time_seg))
-                    print("Bitrate médio: "+str(round(sum_bitrate / N_SEGMENTS, 2)))
+                    print("Missing ratio por segmento (campo visão): " +
+                          str(missing_ratio_fov))
+                    print("Tempo total de download: " +
+                          str(round(sum(dash.previous_segment_times), 2))+"s")
+                    print("Tempo total de download por segmento: " +
+                          str(download_time_seg))
+                    print("Bitrate médio: " +
+                          str(round(sum_bitrate / N_SEGMENTS, 2)))
                     print("Bitrate por segmento: "+str(dash.bitrates_seg))
                     await send_data(hp_writer, stream_id=client_id, end_stream=True)
                     await send_data(lp_writer, stream_id=client_id, end_stream=True)
@@ -275,7 +287,8 @@ async def receive(reader, client_id, client_dash):
         elif Client_Log:
             print("Receiving file:", file_name)
 
-        client_dash.update_download_time(timeit.default_timer() - start_time, int(file_info.segment))
+        client_dash.update_download_time(
+            timeit.default_timer() - start_time, int(file_info.segment))
 
 
 async def play(play_dash, hp_writer, client_id):
@@ -287,7 +300,8 @@ async def play(play_dash, hp_writer, client_id):
     while downloaded_time < N_SEGMENTS:
         delta = datetime.datetime.now()
         played_time = delta - start_time - stopped_time
-        print("Buffer: "+'{0:.2f}'.format(played_time.seconds)+"s/"+'{0:.2f}'.format(downloaded_time)+"s")
+        print("Buffer: "+'{0:.2f}'.format(played_time.seconds) +
+              "s/"+'{0:.2f}'.format(downloaded_time)+"s")
         if played_time.seconds > downloaded_time:
             waiting_for_buffer = True
             await fill_buffer(round(downloaded_time), play_dash, hp_writer, client_id)
@@ -302,7 +316,8 @@ async def fill_buffer(current_segment, buffer_dash, hp_writer, client_id):
     start_segment = current_segment
     end_segment = min(N_SEGMENTS, current_segment+INITIAL_BUFFER_SIZE)
 
-    print("Filling buffer from segment "+str(start_segment)+" to segment "+str(end_segment))
+    print("Filling buffer from segment " +
+          str(start_segment)+" to segment "+str(end_segment))
 
     for buffer_segment in range(start_segment, end_segment):
         if Client_Log:
@@ -310,7 +325,8 @@ async def fill_buffer(current_segment, buffer_dash, hp_writer, client_id):
 
         current_bitrate = buffer_dash.get_max_bitrate()
         for tile in range(1, MAX_TILE):
-            message = VideoPacket(buffer_segment, tile, HIGH_PRIORITY, current_bitrate)
+            message = VideoPacket(buffer_segment, tile,
+                                  HIGH_PRIORITY, current_bitrate)
 
             await send_data(hp_writer, stream_id=client_id, end_stream=False, packet=message)
 
@@ -323,7 +339,8 @@ async def fill_buffer(current_segment, buffer_dash, hp_writer, client_id):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="HTTP/3 client for video streaming")
+    parser = argparse.ArgumentParser(
+        description="HTTP/3 client for video streaming")
     parser.add_argument(
         "url",
         type=str,
@@ -354,7 +371,7 @@ if __name__ == "__main__":
         required=False,
         default="basic",
         type=str,
-        help="dash algorithm (options: basic, basic2) - (defaults to basic)",
+        help="dash algorithm (options: basic, basic2, buffer_occupation, channel_flow_rate, bola) - (defaults to basic)",
     )
 
     args = parser.parse_args()
