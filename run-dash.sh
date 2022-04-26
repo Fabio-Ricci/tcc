@@ -24,9 +24,9 @@ queue="WFQ"
 push=1
 dash="basic"
 bg_d=30
-bg_t="5M"
+bg_t=0.1
 peek_d=20
-peek_t="80M"
+peek_t=0
 printf "Execução %d. BW: %f, Delay: %s, Queuing: %s, Push: %d" "$id" "$bw" "$delay" "$queue" "$push"
 printf ", Dash: %s, BG Duration: %d, BG Traffic: %s" "$dash" "$bg_d" "$bg_t"
 printf ", Peek Duration: %d, Peek Traffic: %s\n" "$peek_d" "$peek_t"
