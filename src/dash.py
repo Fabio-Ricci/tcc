@@ -18,6 +18,9 @@ class Dash():
         self.previous_segment_times = []
         self.previous_segment_times_seg = {}
         self.bitrates_seg = {}
+        # variable for channel for rate
+        self.previous_download_times = [0, 0, 0, 0]
+        self.previous_instant_flow_rates = [0, 0, 0, 0]
 
     def update_download_time(self, frame_download_time, segment):
         self.segment_download_time = frame_download_time
@@ -158,10 +161,38 @@ class Dash():
         self.current_bitrate = next_rate
         return next_rate
 
-    def buffer_occupation(self, segment_number):
+    # map calculated_bitrate to one of the available bitrates (rounding down)
+    def map_bitrate_to_available_bitrates(self, calculated_bitrate):
+        bitrates = [float(i) for i in self.bitrates]
+        bitrates.sort()
+
+        curr_bitrate = self.bitrates[0]
+        for _, bitrate in enumerate(bitrates[1:], 1):
+            if calculated_bitrate <= bitrate:
+                curr_bitrate = bitrate
+            else:
+                break
+
+        return curr_bitrate
+
+    def buffer_occupation(self, throughput, buffer_level, segment_duration):
+        # buffer occupation formula
+        calculated_bitrate = throughput * \
+            (buffer_level/segment_duration) * INSUFFICIENT_BUFFER_SAFETY_FACTOR
+
+        self.current_bitrate = self.map_bitrate_to_available_bitrates(
+            calculated_bitrate)
+
         return self.current_bitrate
 
-    def channel_flow_rate(self, segment_number):
+    def channel_flow_rate(self, last_segment_download_time, last_instant_flow_rate):
+
+        # formula constants
+        alpha_fast = 0.5**last_segment_download_time
+        alpha_slow = 0.5**(last_segment_download_time/2)
+
+        # mi_fast = (1-alpha_fast)*instant_flow_rate+alpha_fast*
+
         return self.current_bitrate
 
     def bola(self, segment_number):
