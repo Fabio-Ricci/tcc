@@ -1,3 +1,5 @@
+import numpy as np
+
 # Constants for the BASIC-2 adaptation scheme
 BASIC_THRESHOLD = 10
 BASIC_UPPER_THRESHOLD = 1.2
@@ -18,9 +20,10 @@ class Dash():
         self.previous_segment_times = []
         self.previous_segment_times_seg = {}
         self.bitrates_seg = {}
-        # variable for channel for rate
-        self.previous_download_times = [0, 0, 0, 0]
-        self.previous_instant_flow_rates = [0, 0, 0, 0]
+        # variable for channel flow rate
+        self.window_size = 5
+        self.previous_download_times = np.zeros(self.window_size)
+        self.previous_instant_flow_rates = np.zeros(self.window_size)
 
     def update_download_time(self, frame_download_time, segment):
         self.segment_download_time = frame_download_time
@@ -186,12 +189,39 @@ class Dash():
         return self.current_bitrate
 
     def channel_flow_rate(self, last_segment_download_time, last_instant_flow_rate):
+        # save new last segment download time
+        self.previous_download_times = np.roll(
+            self.previous_download_times, 1)  # rotate left
+        self.previous_download_times[0] = 0
+        self.previous_download_times[self.window_size -
+                                     1] = last_segment_download_time
 
-        # formula constants
-        alpha_fast = 0.5**last_segment_download_time
-        alpha_slow = 0.5**(last_segment_download_time/2)
+        # save new last instant flow rate
+        self.previous_instant_flow_rates = np.roll(
+            self.previous_instant_flow_rates, 1)  # rotate left
+        self.previous_instant_flow_rates[0] = 0
+        self.previous_instant_flow_rates[self.window_size -
+                                         1] = last_instant_flow_rate
 
-        # mi_fast = (1-alpha_fast)*instant_flow_rate+alpha_fast*
+        # previous alpha fasts
+        alpha_fasts = 0.5**self.previous_download_times
+        # previous alpha slows
+        alpha_slows = 0.5**(self.previous_download_times/2)
+        # previous mi fasts
+        mi_fasts = np.zeros(self.window_size)
+        for i in range(1, self.window_size):
+            mi_fasts[i] = (
+                1-alpha_fasts[i])*self.previous_instant_flow_rates[i]+alpha_fasts[i]*mi_fasts[i-1]
+        # previous mi slows
+        mi_slows = np.zeros(self.window_size)
+        for i in range(1, self.window_size):
+            mi_slows[i] = (
+                1-alpha_slows[i])*self.previous_instant_flow_rates[i]+alpha_slows[i]*mi_slows[i-1]
+
+        # get min between last mi slow and mi fast
+        bitrate = min(mi_slows[self.window_size-1],
+                      mi_fasts[self.window_size-1])
+        self.current_bitrate = self.map_bitrate_to_available_bitrates(bitrate)
 
         return self.current_bitrate
 
