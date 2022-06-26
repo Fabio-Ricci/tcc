@@ -1,4 +1,4 @@
-# TCC
+# 360º Video Streaming over QUIC
 ## Repository setup
 
 ### 1. Start working through `$ git clone`

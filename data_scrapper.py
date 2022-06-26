@@ -15,14 +15,17 @@ LINK_PATTERNS = [START_CHANNEL_PATTERN, TRAFFIC_PATTERN, LINK_WIDTH_PATTERN, CHA
 IPERF_START_PATTERN = r'(Total Datagrams)'
 DATAGRAM_PATTERN = r'(\d+)  $'
 IPERF_END_PATTERN = r'iperf Done.'
-IPERF_PATTERNS = [IPERF_START_PATTERN, DATAGRAM_PATTERN]
+IPERF_SLEEP = r'Sleeping (\d+) seconds.'
+IPERF_PATTERNS = [IPERF_START_PATTERN, DATAGRAM_PATTERN, IPERF_SLEEP]
 
-DATAGRAM_SIZE = 65536 #bits
+DATAGRAM_SIZE = 65536  # bits
 
 LOADS = [0.1, 0.3]
 BANDS = [10.00, 8.00]  # Mbps
-DELAYS = ["5ms", "10ms", "15ms", "20ms"]
+DELAYS = ["5ms", "50ms", "75ms", "100ms", "125ms", "150ms"]
 QUEUES = ["FIFO", "SP", "WFQ"]
+
+N_EXECUTION = 5
 
 
 def mean(number_list):
@@ -30,7 +33,7 @@ def mean(number_list):
 
 
 def mean_percentage(number_list):
-    return round(sum(number_list) / (len(number_list)*100), 5)
+    return round(sum(number_list) / (len(number_list) * 100), 5)
 
 
 def get_att_id(cen_id, mod, div):
@@ -38,22 +41,24 @@ def get_att_id(cen_id, mod, div):
 
 
 def print_row():
-    row = "; ".join([str(cenario_id), str(LOADS[loads_id]), str(BANDS[bands_id]), DELAYS[delay_id], QUEUES[queue_id],
-                    str(rebuffering_count_mean), str(rebuffered_secs_mean), str(missing_ratio_total_mean),
-                    str(missing_ratio_pov_mean), str(bitrate_avg_mean), str(total_channel_usage_mean),
-                    str(application_channel_usage_mean), str(iperf_usage_mean)])
-    row = row.replace('.', ',')
-    print(row)
+    for i in range(N_EXECUTION):
+        print("EXECUCAO "+str(i))
+        row = "; ".join([str(cenario_id), str(LOADS[loads_id]), str(BANDS[bands_id]), DELAYS[delay_id], QUEUES[queue_id],
+                         str(rebuffering_count[i]), str(rebuffered_secs[i]), str(missing_ratio_total[i]),
+                         str(missing_ratio_pov[i]), str(bitrate_avg[i]), str(total_channel_usage[i]),
+                         str(application_channel_usage[i]), str(iperf_usage[i])])
+        row = row.replace('.', ',')
+        print(row)
 
 
 if __name__ == '__main__':
-    args_dir = 1648744517
+    args_dir = "06-21"
     user_dir = "./out/" + str(args_dir) + "/"
 
     print("id; load_per; channel_bandwidth; delay_ms; queue; rebuffer_count; rebuffer_s; miss_ratio_all_per; "
           "miss_ratio_pov_per; bitrate_avg; total_channel_usage_per; app_channel_usage_per; iperf_channel_usage_per")
 
-    for cenario_id in range(1, 49):
+    for cenario_id in range(1, 73):
         rebuffering_count = []
         rebuffered_secs = []
         missing_ratio_total = []
@@ -65,7 +70,7 @@ if __name__ == '__main__':
         iperf_usage = []
         application_channel_usage = []
 
-        for i in range(5):
+        for i in range(N_EXECUTION):
             # CLIENT FILE: RATIOS and BITRATE
             file_name = user_dir + '-'.join([str(cenario_id), str(i), "client_out.txt"])
             with open(file_name) as f:
@@ -104,6 +109,11 @@ if __name__ == '__main__':
                     else:
                         state += 1
 
+            if len(missing_ratio_total) <= i or len(rebuffering_count) <= i or len(rebuffered_secs) <= i or \
+                    len(missing_ratio_pov) <= i or len(bitrate_avg) <= i:
+                print("Error with file: " + file_name)
+                break
+
             # EXEC FILE: Channel Usage
             file_name = user_dir + '-'.join([str(cenario_id), str(i), "exec.txt"])
             with open(file_name) as f:
@@ -123,6 +133,10 @@ if __name__ == '__main__':
                             break
                         state += 1
 
+            if len(total_channel_traffic) <= i or len(total_channel_usage) <= i:
+                print("Error with file: " + file_name)
+                break
+
             # IPERF FILE: Channel Usage by Iperf
             file_name = user_dir + '-'.join([str(cenario_id), str(i), "iperf_client_out.txt"])
             with open(file_name) as f:
@@ -135,7 +149,7 @@ if __name__ == '__main__':
                     if state == 1:
                         end = re.findall(IPERF_END_PATTERN, line)
                         if end:
-                            state = 0
+                            state = 2
                             continue
 
                     result = re.findall(IPERF_PATTERNS[state], line)
@@ -146,21 +160,29 @@ if __name__ == '__main__':
                         elif state == 1:
                             iperf_datagrams += int(result[0])
                             iperf_seconds += 1
+                        elif state == 2:
+                            iperf_seconds += int(result[0])
+                            state = 0
 
-                iperf_throughput = iperf_datagrams*DATAGRAM_SIZE/iperf_seconds
+                iperf_throughput = iperf_datagrams * DATAGRAM_SIZE / iperf_seconds
                 iperf_usage.append(iperf_throughput / (1048576 * channel_bw))
 
-        for i in range(5):
+            if len(iperf_usage) <= i:
+                print("Error with file: " + file_name)
+                break
+
+        for i in range(N_EXECUTION):
             application_channel_usage.append(total_channel_usage[i] - iperf_usage[i])
 
-        rebuffering_count_mean = mean(rebuffering_count)
-        rebuffered_secs_mean = mean(rebuffered_secs)
-        missing_ratio_total_mean = mean_percentage(missing_ratio_total)
-        missing_ratio_pov_mean = mean_percentage(missing_ratio_pov)
-        bitrate_avg_mean = mean(bitrate_avg)
-        iperf_usage_mean = mean(iperf_usage)
-        total_channel_usage_mean = mean(total_channel_usage)
-        application_channel_usage_mean = mean(application_channel_usage)
+        # Realizar média aqui mesmo
+        # rebuffering_count_mean = mean(rebuffering_count)
+        # rebuffered_secs_mean = mean(rebuffered_secs)
+        # missing_ratio_total_mean = mean_percentage(missing_ratio_total)
+        # missing_ratio_pov_mean = mean_percentage(missing_ratio_pov)
+        # bitrate_avg_mean = mean(bitrate_avg)
+        # iperf_usage_mean = mean(iperf_usage)
+        # total_channel_usage_mean = mean(total_channel_usage)
+        # application_channel_usage_mean = mean(application_channel_usage)
 
         mod = len(QUEUES)
         div = 1

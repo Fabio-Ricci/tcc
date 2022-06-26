@@ -1,16 +1,17 @@
 #!/usr/bin/python
 import argparse
 import os
+import random
 import re
 import time
+import statistics
 
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.log import setLogLevel
+from mininet.clean import Cleanup
 
-
-# execfile('sflow-rt/extras/sflow.py')
 
 class GEANTopo(Topo):
     "GEANT topology for traffic matrix"
@@ -32,42 +33,45 @@ class GEANTopo(Topo):
         self.addLink(switch_2, host_2)
 
         # add edges between switches
-        self.addLink(switch_1, switch_2, bw=bw, delay=delay)  # , loss=1)
+        self.addLink(switch_1, switch_2, bw=bw, delay=delay, max_queue_size=1000)
 
 
 topos = {'geant': GEANTopo}
 
 
 def launch(exec_id: str, mininet_bw: float, mininet_delay: str, server_queue: str, server_push: int, client_dash: str,
-           iperf_const_duration: int, iperf_const_load: float, iperf_peek_duration: int, iperf_peek_load: float,
-           out_folder: str):
+           exec_duration: int, load: float, out_folder: str):
     """
     Create and launch the network
     """
     # Create network
     print("*** Creating Network ***\n")
+    Cleanup()
     topog = GEANTopo(mininet_bw, mininet_delay)
     net = Mininet(topo=topog, link=TCLink)
 
     # Run network
     print("*** Firing up Mininet ***\n")
     net.start()
-
-    backbone = net.linksBetween(net.get('s1'), net.get('s2'))[0]
-
-    # get initial rates
-    init_rx, init_tx = get_rx_tx(backbone.intf1.ifconfig())
-
-    # get initial time
-    initial_timestamp = time.time()
-
-    # Generate traffic
-    print("*** Generating traffic from TMs ***\n")
-
     hosts = net.hosts
 
     server = hosts[0]
     client = hosts[1]
+
+    # ******************************
+    # Rodando servidor iPerf
+
+    print("\n*** Running iPerf server: "+server.IP()+" ***")
+    iperf_port = "5002"
+    iperf_server_command = "iperf3 -s -p " + iperf_port + " > out/" + out_folder + "/" \
+                           + exec_id + "-iperf_server_out.txt &"
+    print(iperf_server_command)
+    server.cmd(iperf_server_command)
+    iperf_server_pid = get_last_pid(server)
+    print("-> iPerf server running on process: ", iperf_server_pid)
+
+    # ******************************
+    # Rodando servidor de vídeo
 
     print("\n*** Running server: "+server.IP()+" ***")
     server.cmd("export PYTHONPATH=$PYTHONPATH:/root/aioquic-360-video-streaming")
@@ -83,6 +87,21 @@ def launch(exec_id: str, mininet_bw: float, mininet_delay: str, server_queue: st
     server_pid = get_last_pid(server)
     print("-> Server running on process: ", server_pid)
 
+    # ******************************
+    # Rodando cliente do iPerf
+    print("\n*** Running iPerf client for " + str(load) + " load ***")
+    out_file = "out/" + out_folder + "/" + exec_id + "-iperf_client_out.txt"
+    iperf_params = " ".join(["-ip " + server.IP(), "-p " + iperf_port, "-mb " + str(mininet_bw), "-l " + str(load),
+                             "-o " + out_file])
+    iperf_command = "python3 iperf_client_exec.py "+iperf_params+" &"
+    print(iperf_command)
+    client.cmd(iperf_command)
+    iperf_client_pid = get_last_pid(client)
+    print("-> iPerf client running on process: ", iperf_client_pid)
+
+    # ******************************
+    # Rodando cliente de vídeo
+
     print("\n*** Running client: "+client.IP()+" ***")
     client.cmd("export PYTHONPATH=$PYTHONPATH:/root/aioquic-360-video-streaming")
     client_command = "python3 src/client.py -c cert/pycacert.pem "+server.IP()+":4433 -i data/user_input.csv -da " \
@@ -91,30 +110,24 @@ def launch(exec_id: str, mininet_bw: float, mininet_delay: str, server_queue: st
     client.cmd(client_command)
     client_pid = get_last_pid(client)
     print("-> Client running on process: ", client_pid)
+    time.sleep(2)
 
-    print("\n*** Running iPerf server: "+server.IP()+" ***")
-    iperf_port = "5002"
-    iperf_server_command = "iperf3 -s -p " + iperf_port + " > out/" + out_folder + "/" \
-                           + exec_id + "-iperf_server_out.txt &"
-    print(iperf_server_command)
-    server.cmd(iperf_server_command)
-    iperf_server_pid = get_last_pid(server)
-    print("-> iPerf server running on process: ", iperf_server_pid)
+    # ******************************
+    # Medida de tráfego inicial
 
-    const_traffic = str(mininet_bw * iperf_const_load) + "M"
-    print("\n*** Running iPerf client with constant traffic of " + const_traffic + "bps ***")
-    client.cmd("chmod 755 iperf_client_script.sh")
-    iperf_params = " ".join([server.IP(), iperf_port, str(iperf_const_duration), const_traffic])
-    optional_params = ""
-    if iperf_peek_duration != 0 and iperf_peek_load != 0.0:
-        peek_traffic = str(mininet_bw * iperf_peek_load) + "M"
-        optional_params = " ".join([str(iperf_peek_duration), peek_traffic])
-    iperf_command = "./iperf_client_script.sh "+iperf_params+" "+optional_params+" > out/" + out_folder + "/" \
-                    + exec_id + "-iperf_client_out.txt &"
-    print(iperf_command)
-    client.cmd(iperf_command)
-    iperf_client_pid = get_last_pid(client)
-    print("-> iPerf client running on process: ", iperf_client_pid)
+    backbone = net.linksBetween(net.get('s1'), net.get('s2'))[0]
+
+    # get initial rates
+    init_rx, init_tx = get_rx_tx(backbone.intf1.ifconfig())
+
+    # get initial time
+    initial_timestamp = time.time()
+    print("\n*** Transmissão inicial ***")
+    print("RX Inicial: " + str(init_rx) + "bits")
+    print("TX Inicial: " + str(init_tx) + "bits")
+
+    # ******************************
+    # Aguardando fim
 
     print("\n*** Checking for client closure ***")
 
@@ -125,9 +138,12 @@ def launch(exec_id: str, mininet_bw: float, mininet_delay: str, server_queue: st
         if len(process) == 0:
             is_running = False
         else:
-            client.cmd("sleep 1")
+            time.sleep(2)
 
     print("\n\nCLIENT FINISHED\n\n")
+
+    # ******************************
+    # Medida de tráfego final
 
     # get final rates
     final_rx, final_tx = get_rx_tx(backbone.intf1.ifconfig())
@@ -135,18 +151,29 @@ def launch(exec_id: str, mininet_bw: float, mininet_delay: str, server_queue: st
     # get final time
     closure_timestamp = time.time()
 
-    total_rx = final_rx - init_rx
-    total_tx = final_tx - init_tx
-    execution_time = closure_timestamp - initial_timestamp
+    print("\n*** Transmissão final ***")
+    print("RX Final: " + str(final_rx) + "bits")
+    print("TX Final: " + str(final_tx) + "bits")
+
+    # ******************************
+    # Cálculo de uso do canal
 
     print("*** Utilização do Canal ***\n")
 
+    total_rx = final_rx - init_rx
+    total_tx = final_tx - init_tx
+
+    execution_time = closure_timestamp - initial_timestamp
     throughput = (total_rx + total_tx) / execution_time
+
     print("Taxa no canal: " + str(throughput) + "bits/s")
     print("Capacidade do link: " + str(mininet_bw) + "Mbps")
 
     channel_usage = throughput/(1048576*mininet_bw)
     print("Uso do canal: " + str(channel_usage))
+
+    # ******************************
+    # Encerrando processos
 
     print("\n*** Killing remaining process ***\n")
     print("> Killing video server\n")
@@ -177,6 +204,37 @@ def get_rx_tx(ifconfig):
 
     # return values in bits
     return int(rx) * 8, int(tx) * 8
+
+
+def get_random_iperf_params(on_avg, off_avg):
+    def warmup(a, b, size=100000):
+        samples = []
+        for i in range(size):
+            c = random.uniform(a, b)
+            samples.append(c)
+
+        return samples
+
+    # Encontra slices de tamanho slice_size na lista
+    # samples que tem media igual a
+    # média desejada (avg)
+    def trail(a=0, b=2, avg=10, size=1000000, slice_size=5, slice_count=3):
+        random_lists = []
+        samples = warmup(a, b, size)
+        for i in range(int(size / slice_size)):
+            picked = [int(x * avg) for x in samples[slice_size * i:(i + 1) * slice_size]]
+            if (statistics.mean(picked) == avg) and (slice_count > 0):
+                random_lists.append(picked)
+                slice_count -= 1
+        return random_lists
+
+    on_list = trail(avg=on_avg)
+    off_list = trail(avg=off_avg)
+
+    i_on = random.randint(0, len(on_list))
+    i_off = random.randint(0, len(off_list))
+
+    return i_on, i_off
 
 
 if __name__ == '__main__':
@@ -229,40 +287,24 @@ if __name__ == '__main__':
         "-da",
         "--dash-algorithm",
         required=False,
-        choices=['basic','basic2'],
+        choices=['basic', 'basic2'],
         default="basic",
         type=str,
         help="dash algorithm (options: basic, basic2) - (defaults to basic)",
     )
-
-    # iPerf Parameters
     parser.add_argument(
-        "-bd",
-        "--bg-duration",
+        "-d",
+        "--exec-duration",
         type=int,
-        default=50,
+        default=80,
         help="The duration of the background traffic on iPerf in seconds"
     )
     parser.add_argument(
-        "-bt",
-        "--bg-traffic",
+        "-l",
+        "--load",
         type=float,
-        default=0.1,
+        default=0,
         help="The bandwidth consumption by the background traffic on iPerf. Ex: 0.1 = 10%"
-    )
-    parser.add_argument(
-        "-pd",
-        "--peek-duration",
-        type=int,
-        default=0,
-        help="The duration of the peek traffic on iPerf in seconds"
-    )
-    parser.add_argument(
-        "-pt",
-        "--peek-traffic",
-        type=float,
-        default=0,
-        help="The bandwidth consumption by the peek traffic on iPerf in Bytes. Ex: 0.7 = 70%"
     )
     parser.add_argument(
         "-out",
@@ -280,5 +322,4 @@ if __name__ == '__main__':
 
     launch(exec_id=args.id, mininet_bw=args.mn_bandwidth, mininet_delay=args.mn_delay,
            server_queue=args.server_queue, server_push=args.server_push, client_dash=args.dash_algorithm,
-           iperf_const_duration=args.bg_duration, iperf_const_load=args.bg_traffic,
-           iperf_peek_duration=args.peek_duration, iperf_peek_load=args.peek_traffic, out_folder=args.out_directory)
+           exec_duration=args.exec_duration, load=args.load, out_folder=args.out_directory)
