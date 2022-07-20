@@ -144,7 +144,8 @@ async def send(message: VideoRequestMessage, writer):
     video_info = VideoPacket(segment=segment, tile=tile, bitrate=bitrate)
     data = video_info.serialize()
 
-    file_name = get_server_file_name(segment=segment, tile=tile, bitrate=bitrate)
+    file_name = get_server_file_name(
+        segment=segment, tile=tile, bitrate=bitrate)
 
     if server_file_exists(file_name):
         if Server_Log:
@@ -169,6 +170,7 @@ async def send(message: VideoRequestMessage, writer):
 
 
 if __name__ == "__main__":
+    print("bunda")
     parser = argparse.ArgumentParser(description="QUIC Video Server")
 
     parser.add_argument(
@@ -238,7 +240,7 @@ if __name__ == "__main__":
               args.port,
               configuration=configuration,
               stream_handler=handle_stream
-        )
+              )
     )
 
     loop = asyncio.get_event_loop()

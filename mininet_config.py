@@ -33,7 +33,8 @@ class GEANTopo(Topo):
         self.addLink(switch_2, host_2)
 
         # add edges between switches
-        self.addLink(switch_1, switch_2, bw=bw, delay=delay, max_queue_size=1000)
+        self.addLink(switch_1, switch_2, bw=bw,
+                     delay=delay, max_queue_size=1000)
 
 
 topos = {'geant': GEANTopo}
@@ -222,7 +223,8 @@ def get_random_iperf_params(on_avg, off_avg):
         random_lists = []
         samples = warmup(a, b, size)
         for i in range(int(size / slice_size)):
-            picked = [int(x * avg) for x in samples[slice_size * i:(i + 1) * slice_size]]
+            picked = [int(x * avg)
+                      for x in samples[slice_size * i:(i + 1) * slice_size]]
             if (statistics.mean(picked) == avg) and (slice_count > 0):
                 random_lists.append(picked)
                 slice_count -= 1
@@ -238,7 +240,8 @@ def get_random_iperf_params(on_avg, off_avg):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Mininet configuration and execution script")
+    parser = argparse.ArgumentParser(
+        description="Mininet configuration and execution script")
 
     # Id
     parser.add_argument(

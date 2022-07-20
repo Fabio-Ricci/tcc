@@ -9,7 +9,7 @@ FILE_FORMAT = '.m4s'
 
 # Video information
 DASH = '10000'
-MAX_TILE = 201
+MAX_TILE = 200
 VIDEO_FPS = 30
 FRAME_TIME_MS = 33333
 N_SEGMENTS = 50
