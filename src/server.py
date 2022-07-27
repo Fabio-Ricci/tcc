@@ -170,7 +170,6 @@ async def send(message: VideoRequestMessage, writer):
 
 
 if __name__ == "__main__":
-    print("bunda")
     parser = argparse.ArgumentParser(description="QUIC Video Server")
 
     parser.add_argument(
@@ -216,7 +215,7 @@ if __name__ == "__main__":
         "-p",
         "--push",
         help="enable server push",
-        action="store_true"
+        action="store_true",
     )
 
     args = parser.parse_args()

@@ -75,7 +75,7 @@ def launch(exec_id: str, mininet_bw: float, mininet_delay: str, server_queue: st
     # Rodando servidor de vídeo
 
     print("\n*** Running server: "+server.IP()+" ***")
-    server.cmd("export PYTHONPATH=$PYTHONPATH:/root/aioquic-360-video-streaming")
+    server.cmd("export PYTHONPATH=$PYTHONPATH:/root/tcc")
 
     push_flag = ""
     if server_push:
@@ -104,7 +104,7 @@ def launch(exec_id: str, mininet_bw: float, mininet_delay: str, server_queue: st
     # Rodando cliente de vídeo
 
     print("\n*** Running client: "+client.IP()+" ***")
-    client.cmd("export PYTHONPATH=$PYTHONPATH:/root/aioquic-360-video-streaming")
+    client.cmd("export PYTHONPATH=$PYTHONPATH:/root/tcc")
     client_command = "python3 src/client.py -c cert/pycacert.pem "+server.IP()+":4433 -i data/user_input.csv -da " \
                      + client_dash + " > out/" + out_folder + "/" + exec_id + "-client_out.txt &"
     print(client_command)
